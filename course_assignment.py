@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 import requests
@@ -8,6 +9,7 @@ from agents import BasicAgent
 
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 FILES_DIR = "files_for_tasks"
+QUERY_API = False
 
 
 def query_all_questions():
@@ -34,6 +36,11 @@ def query_all_questions():
     except Exception as e:
         print(f"An unexpected error occurred fetching questions: {e}")
         return f"An unexpected error occurred fetching questions: {e}", None
+    
+    # Save to json file
+    file_name = FILES_DIR + "/questions.json"
+    with open(file_name, 'w', encoding='utf-8') as file:
+        json.dump(questions_data, file, ensure_ascii=False, indent=4)
     
     return questions_data
 
@@ -64,7 +71,7 @@ def fetch_files(questions_data: List[Dict]):
             get_files_for_task(task)
 
 
-def run_agent(questions_data):
+def run_agent(questions_data: List[Dict]):
     try:
         agent = BasicAgent()
     except Exception as e:
@@ -77,11 +84,16 @@ def run_agent(questions_data):
     for item in questions_data:
         task_id = item.get("task_id")
         question_text = item.get("question")
+
+        file_path = None
+        if item.get("file_name", "") != "":
+            file_path = FILES_DIR + "/" + item.get("file_name", "")
+        
         if not task_id or question_text is None:
             print(f"Skipping item with missing task_id or question: {item}")
             continue
         try:
-            submitted_answer = agent(question_text)
+            submitted_answer = agent(question_text, file_path)
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:
@@ -96,8 +108,14 @@ def run_agent(questions_data):
 
 
 if __name__ == '__main__':
-    questions_data = query_all_questions()
-    fetch_files(questions_data)
+    if QUERY_API:
+        questions_data = query_all_questions()
+        fetch_files(questions_data)
+    else:
+        file_name = FILES_DIR + "/questions.json"
+        with open(file_name, "r", encoding='utf-8') as file:
+            questions_data = json.load(file)
+    
     results_log, answers_payload = run_agent(questions_data)
     print(results_log)
 
