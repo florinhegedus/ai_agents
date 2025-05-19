@@ -1,12 +1,16 @@
+import os
 import pandas as pd
 import requests
+from typing import List, Dict
+
 from agents import BasicAgent
 
 
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
+FILES_DIR = "files_for_tasks"
 
 
-def query():
+def query_all_questions():
     api_url = DEFAULT_API_URL
     questions_url = f"{api_url}/questions"
 
@@ -32,6 +36,32 @@ def query():
         return f"An unexpected error occurred fetching questions: {e}", None
     
     return questions_data
+
+
+def get_files_for_task(task: Dict):
+    api_url = DEFAULT_API_URL
+    files_url = f"{api_url}/files/{task.get("task_id")}"
+
+    # Fetch files
+    print(f"Fetching files from: {files_url}")
+    try:
+        response = requests.get(files_url, timeout=60)
+        response.raise_for_status()
+        if response.status_code == 200:
+            file_path = FILES_DIR + "/" + task.get("file_name")
+            with open(file_path, "wb") as file:
+                file.write(response.content)
+            print(f"Succesfully saved file {file_path}")
+    except Exception as e:
+        print(f"An unexpected error occurred fetching files: {e}")
+        return f"An unexpected error occurred fetching files: {e}", None
+
+
+def fetch_files(questions_data: List[Dict]):
+    os.makedirs(FILES_DIR, exist_ok=True)
+    for task in questions_data:
+        if task.get("file_name", "") != "":
+            get_files_for_task(task)
 
 
 def run_agent(questions_data):
@@ -66,7 +96,8 @@ def run_agent(questions_data):
 
 
 if __name__ == '__main__':
-    questions_data = query()
+    questions_data = query_all_questions()
+    fetch_files(questions_data)
     results_log, answers_payload = run_agent(questions_data)
     print(results_log)
 

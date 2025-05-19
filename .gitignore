@@ -4,3 +4,6 @@
 
 # response file
 answers_payload.json
+
+# files for tasks
+files_for_tasks/*

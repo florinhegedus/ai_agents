@@ -23,7 +23,9 @@ def main():
     # {"task_id": "task_id_2", "model_answer": "Answer 2 from your model", "reasoning_trace": "The different steps by which your model reached answer 2"}
     answers_payload = []
     for entry in gaia_dataset['validation']:
-        print(entry['task_id'])
+        print(f"Processing: {entry['task_id']}")
+        if entry.get("file_name", "") != "":
+            print(f"{entry.get("file_name")} is available at {entry.get("file_path")}")
         model_answer = agent(entry['Question'])
         answers_payload.append({'task_id': entry['task_id'],
                                 'model_answer': model_answer})
