@@ -1,6 +1,7 @@
 .venv/*
 .vscode/*
 *.pyc
+.env
 
 # response file
 answers_payload.json
