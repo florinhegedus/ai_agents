@@ -76,7 +76,62 @@ def run_agent(questions_data: List[Dict]):
     return results_log, answers_payload
 
 
+def submit(answers_payload: List[Dict]):
+    submit_url = f"{DEFAULT_API_URL}/submit"
+    username = "florinhegedus"
+    agent_code = "https://huggingface.co/spaces/florinhegedus/Agents_Course_Final_Assignment/tree/main"
+    # 4. Prepare Submission 
+    submission_data = {"username": username, "agent_code": agent_code, "answers": answers_payload}
+    status_update = f"Agent finished. Submitting {len(answers_payload)} answers for user '{username}'..."
+    print(status_update)
+
+    # 5. Submit
+    print(f"Submitting {len(answers_payload)} answers to: {submit_url}")
+    try:
+        response = requests.post(submit_url, json=submission_data, timeout=60)
+        response.raise_for_status()
+        result_data = response.json()
+        final_status = (
+            f"Submission Successful!\n"
+            f"User: {result_data.get('username')}\n"
+            f"Overall Score: {result_data.get('score', 'N/A')}% "
+            f"({result_data.get('correct_count', '?')}/{result_data.get('total_attempted', '?')} correct)\n"
+            f"Message: {result_data.get('message', 'No message received.')}"
+        )
+        print("Submission successful.")
+        results_df = pd.DataFrame(results_log)
+        return final_status, results_df
+    except requests.exceptions.HTTPError as e:
+        error_detail = f"Server responded with status {e.response.status_code}."
+        try:
+            error_json = e.response.json()
+            error_detail += f" Detail: {error_json.get('detail', e.response.text)}"
+        except requests.exceptions.JSONDecodeError:
+            error_detail += f" Response: {e.response.text[:500]}"
+        status_message = f"Submission Failed: {error_detail}"
+        print(status_message)
+        results_df = pd.DataFrame(results_log)
+        return status_message, results_df
+    except requests.exceptions.Timeout:
+        status_message = "Submission Failed: The request timed out."
+        print(status_message)
+        results_df = pd.DataFrame(results_log)
+        return status_message, results_df
+    except requests.exceptions.RequestException as e:
+        status_message = f"Submission Failed: Network error - {e}"
+        print(status_message)
+        results_df = pd.DataFrame(results_log)
+        return status_message, results_df
+    except Exception as e:
+        status_message = f"An unexpected error occurred during submission: {e}"
+        print(status_message)
+        results_df = pd.DataFrame(results_log)
+        return status_message, results_df
+
+
 if __name__ == '__main__':
     questions_data = query_all_questions()
     results_log, answers_payload = run_agent(questions_data)
-    print(results_log)
+    status_message, results_df = submit(answers_payload)
+
+    print(status_message)

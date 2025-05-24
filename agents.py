@@ -13,9 +13,9 @@ load_dotenv()
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 
 
-def fetch_file_content(task: Dict):
+def fetch_file_content(task_id: str):
     api_url = DEFAULT_API_URL
-    files_url = f"{api_url}/files/{task.get("task_id")}"
+    files_url = f"{api_url}/files/{task_id}"
 
     # Fetch files
     print(f"Fetching files from: {files_url}")
@@ -42,10 +42,10 @@ class BasicAgent:
     def __call__(self, task: Dict) -> str:
         task_id = task.get("task_id")
         question = task.get("question")
-        file_name = task.get("file_name")
+        file_name = task.get("file_name", "")
 
-        if file_name is not None:
-            file_content = fetch_file_content(task)
+        if file_name != "":
+            file_content = fetch_file_content(task_id)
             if file_name[-4:] == ".mp3":
                 print("Processing audio file")
             elif file_name[-5:] == ".xlsx":
@@ -55,20 +55,6 @@ class BasicAgent:
             elif file_name[-4:] == ".png":
                 print("Processing image file")
 
-        response = self.agent.run(question)
+        # response = self.agent.run(question)
     
-        return response
-    
-
-if __name__ == '__main__':
-    model = OpenAIServerModel(
-        model_id="gpt-4o",
-        api_base="https://api.openai.com/v1",
-        api_key=os.environ["OPENAI_API_KEY"],
-    )
-
-    agent = CodeAgent(tools=[], model=model, add_base_tools=True)
-
-    agent.run(
-        "What is the weather like in Timisoara right now?",
-    )
+        return "default answer"
