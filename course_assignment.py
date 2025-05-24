@@ -9,7 +9,6 @@ from agents import BasicAgent
 
 DEFAULT_API_URL = "https://agents-course-unit4-scoring.hf.space"
 FILES_DIR = "files_for_tasks"
-QUERY_API = False
 
 
 def query_all_questions():
@@ -45,32 +44,6 @@ def query_all_questions():
     return questions_data
 
 
-def get_files_for_task(task: Dict):
-    api_url = DEFAULT_API_URL
-    files_url = f"{api_url}/files/{task.get("task_id")}"
-
-    # Fetch files
-    print(f"Fetching files from: {files_url}")
-    try:
-        response = requests.get(files_url, timeout=60)
-        response.raise_for_status()
-        if response.status_code == 200:
-            file_path = FILES_DIR + "/" + task.get("file_name")
-            with open(file_path, "wb") as file:
-                file.write(response.content)
-            print(f"Succesfully saved file {file_path}")
-    except Exception as e:
-        print(f"An unexpected error occurred fetching files: {e}")
-        return f"An unexpected error occurred fetching files: {e}", None
-
-
-def fetch_files(questions_data: List[Dict]):
-    os.makedirs(FILES_DIR, exist_ok=True)
-    for task in questions_data:
-        if task.get("file_name", "") != "":
-            get_files_for_task(task)
-
-
 def run_agent(questions_data: List[Dict]):
     try:
         agent = BasicAgent()
@@ -84,16 +57,12 @@ def run_agent(questions_data: List[Dict]):
     for item in questions_data:
         task_id = item.get("task_id")
         question_text = item.get("question")
-
-        file_path = None
-        if item.get("file_name", "") != "":
-            file_path = FILES_DIR + "/" + item.get("file_name", "")
         
         if not task_id or question_text is None:
             print(f"Skipping item with missing task_id or question: {item}")
             continue
         try:
-            submitted_answer = agent(question_text, file_path)
+            submitted_answer = agent(item)
             answers_payload.append({"task_id": task_id, "submitted_answer": submitted_answer})
             results_log.append({"Task ID": task_id, "Question": question_text, "Submitted Answer": submitted_answer})
         except Exception as e:
@@ -108,14 +77,6 @@ def run_agent(questions_data: List[Dict]):
 
 
 if __name__ == '__main__':
-    if QUERY_API:
-        questions_data = query_all_questions()
-        fetch_files(questions_data)
-    else:
-        file_name = FILES_DIR + "/questions.json"
-        with open(file_name, "r", encoding='utf-8') as file:
-            questions_data = json.load(file)
-    
+    questions_data = query_all_questions()
     results_log, answers_payload = run_agent(questions_data)
     print(results_log)
-
